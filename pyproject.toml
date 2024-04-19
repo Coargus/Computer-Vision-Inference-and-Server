@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]  # list of folders that contain the packages (["."] by default)
-include = ["your_project_name"]  # package names should match these glob patterns (["*"] by default)
-exclude = ["images"]  # exclude packages matching these glob patterns (empty by default)
+include = ["cvias"]  # package names should match these glob patterns (["*"] by default)
+exclude = ["images, tests, test_scripts"]  # exclude packages matching these glob patterns (empty by default)
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [project]
-name = "your_project_name"
+name = "cvias"
 version = "0.0.1"
 authors = [
-  { name="Example Author", email="author@example.com" },
+  { name="Minkyu Choi", email="minkyu.choi@coargus.com" },
 ]
 description = "A small example package"
 readme = "README.md"
@@ -23,13 +23,14 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "numpy==1.22.0",
-    "pandas"
+    "cv_api@git+https://github.com/Coargus/computer-vision-model-abstraction.git",
+    "cogutil@git+https://github.com/Coargus/cogutil.git#egg=cogutil",
+    "ultralytics",
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/Coargus/template-python-package"
-"Bug Tracker" = "https://github.com/Coargus/template-python-package/issues"
+"Homepage" = "https://github.com/Coargus/computer-vision-model-server"
+"Bug Tracker" = "https://github.com/Coargus/computer-vision-model-server/issues"
 
 [project.optional-dependencies]
 dev = ["black", "ruff", "mypy"]

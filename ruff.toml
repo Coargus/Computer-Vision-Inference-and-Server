@@ -21,6 +21,7 @@ exclude = [
     "dist",
     "node_modules",
     "venv",
+    "test_scripts",
 ]
 
 # Same as Black.
@@ -116,7 +117,7 @@ force-wrap-aliases = true
 combine-as-imports = true
 
 # TODO: your package name here
-known-first-party = ["package_name"]
+known-first-party = ["cvias"]
 
 [lint.pydocstyle]
 convention = "google"
