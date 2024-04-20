@@ -5,9 +5,9 @@ from __future__ import annotations
 import warnings
 from typing import TYPE_CHECKING
 
+from cog_cv_abstraction.schema.detected_object import DetectedObject
 from cogutil import download
 from cogutil.torch import get_device
-from cv_api.schema.detected_object import DetectedObject
 from ultralytics import YOLO
 
 warnings.filterwarnings("ignore")
