@@ -22,7 +22,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "cv_api@git+https://github.com/Coargus/computer-vision-model-abstraction.git",
+    "cog_cv_abstraction@git+https://github.com/Coargus/computer-vision-model-abstraction.git",
     "cogutil@git+https://github.com/Coargus/cogutil.git#egg=cogutil",
     "ultralytics",
 ]
