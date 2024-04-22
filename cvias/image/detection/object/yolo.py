@@ -49,7 +49,8 @@ class Yolo:
         self.model = self.load_model(self.checkpoint)
         self.device = get_device(gpu_number)
         self.model.to(self.device)
-        self.class_id_to_english = {v: k for k, v in self.model.names.items()}
+        self.english_to_class_id = {v: k for k, v in self.model.names.items()}
+        self.class_id_to_english = {k: v for k, v in self.model.names.items()}  # noqa: C416
 
     def load_model(self, weight_path: str) -> YOLO:
         """Load weight.
@@ -103,7 +104,7 @@ class Yolo:
         """
         if len(classes) == 1:
             class_name = classes[0]
-        class_ids = [self.class_id_to_english.get(c) for c in classes]
+        class_ids = [self.english_to_class_id.get(c) for c in classes]
 
         if self.validate_classes(class_ids):
             # object is detectable from the model
@@ -118,23 +119,34 @@ class Yolo:
                 confidence_from_model = None
 
             else:
-                confidence_from_model = (
+                confidence_from_model = list(
                     detected_objects.boxes.conf.cpu().detach().numpy()
                 )
 
         else:
             class_name = None
-            confidence_from_model = 0
+            confidence_from_model = None
             detected_objects = None
             num_detections = 0
 
         return DetectedObject(
             name=class_name,
             model_name=self.model_name,
-            confidence_of_all_obj=list(confidence_from_model),
+            confidence_of_all_obj=confidence_from_model,
             probability_of_all_obj=[],
             all_obj_detected=detected_objects,
             number_of_detection=num_detections,
             is_detected=bool(num_detections > 0),
             bounding_box_of_all_obj=self.get_bounding_boxes(detected_objects),
         )
+
+    def get_class_id_from_name(self, class_name: str) -> int:
+        """Get class id.
+
+        Args:
+            class_name (str): Class name.
+
+        Returns:
+            int: Class id.
+        """
+        return self.english_to_class_id.get(class_name)
