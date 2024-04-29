@@ -11,7 +11,7 @@ namespaces = true  # to disable scanning PEP 420 namespaces (true by default)
 name = "cvias"
 version = "0.0.1"
 authors = [
-  { name="Minkyu Choi", email="minkyu.choi@coargus.com" },
+  { name = "Minkyu Choi", email = "minkyu.choi@coargus.com" },
 ]
 description = "A small example package"
 readme = "README.md"
@@ -24,7 +24,7 @@ classifiers = [
 dependencies = [
     "cog_cv_abstraction@git+https://github.com/Coargus/computer-vision-model-abstraction.git",
     "cogutil@git+https://github.com/Coargus/cogutil.git#egg=cogutil",
-    "calibrate_cv@git+https://github.com/Coargus/computer-vision-model-calibration.git"
+    "calibrate_cv@git+https://github.com/Coargus/computer-vision-model-calibration.git",
     "ultralytics",
 ]
 
