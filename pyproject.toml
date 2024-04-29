@@ -24,6 +24,7 @@ classifiers = [
 dependencies = [
     "cog_cv_abstraction@git+https://github.com/Coargus/computer-vision-model-abstraction.git",
     "cogutil@git+https://github.com/Coargus/cogutil.git#egg=cogutil",
+    "calibrate_cv@git+https://github.com/Coargus/computer-vision-model-calibration.git"
     "ultralytics",
 ]
 

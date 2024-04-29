@@ -10,14 +10,16 @@ from cogutil import download
 from cogutil.torch import get_device
 from ultralytics import YOLO
 
+from cvias.image.detection import CviasDetectionModel
+
 warnings.filterwarnings("ignore")
 if TYPE_CHECKING:
     from pathlib import Path
 
     import numpy as np
     from ultralytics.engine.results import Results
-# Get the home directory of the current user
 
+# Get the home directory of the current user
 MODEL_PATH = {
     "YOLOv8n": "https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n.pt",
     "YOLOv8s": "https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8s.pt",
@@ -29,7 +31,7 @@ MODEL_PATH = {
 }
 
 
-class Yolo:
+class Yolo(CviasDetectionModel):
     """Yolo."""
 
     def __init__(
@@ -39,8 +41,10 @@ class Yolo:
         gpu_number: int = 0,
     ) -> None:
         """Initialization."""
+        super().__init__()
         if explicit_checkpoint_path:
             self.checkpoint = explicit_checkpoint_path
+            model_name = explicit_checkpoint_path.split("/")[-1]
         else:
             self.checkpoint = download.coargus_downloader(
                 url=MODEL_PATH[model_name], model_dir=model_name
