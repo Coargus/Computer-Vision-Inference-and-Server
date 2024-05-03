@@ -45,5 +45,8 @@ class CviasDetectionModel(ObjectDetectionModelBase):
                 calibrate_confidence_score,
             )
 
-            return calibrate_confidence_score(confidence)
+            return calibrate_confidence_score(
+                confidence=confidence,
+                non_conformity_score=self.non_conformity_score,
+            )
         return 0.0

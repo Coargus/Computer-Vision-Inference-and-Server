@@ -1,1 +1,1 @@
-"""Package containing detection module."""
+"""Package containing closed vocabulary module."""
