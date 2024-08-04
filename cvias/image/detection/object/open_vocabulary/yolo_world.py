@@ -32,7 +32,7 @@ class YoloWorld(CviasDetectionModel):
 
     def __init__(
         self,
-        model_name: str = "yolov8s-world.pt",
+        model_name: str = "YOLOv8x-worldv2",
         explicit_checkpoint_path: Path | None = None,
         gpu_number: int = 0,
     ) -> None:

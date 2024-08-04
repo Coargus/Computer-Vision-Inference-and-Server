@@ -1,6 +1,17 @@
-# Python-Project-Template
+# Coargus's Computer Vision Inference and Server (cvias)
 
-This is a template repository. Please initialize your python project using this template.
+The cvias module is a computer vision inference and server package for Coargus CV project.
+
+## Installation
+1. Development 
+```python
+pip install -e .["dev","test"]
+```
+
+2. Production 
+```python
+pip install -e .
+```
 
 ## Image
 
