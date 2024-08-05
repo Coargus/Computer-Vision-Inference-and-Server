@@ -104,7 +104,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [lint.per-file-ignores]
-"tests/*" = ["S101","T201","PLR2004"]
+"tests/*" = ["S101","T201","PLR2004","D100","D104"]
 
 [lint.pylint]
 max-args = 6

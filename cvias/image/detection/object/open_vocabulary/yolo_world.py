@@ -68,7 +68,7 @@ class YoloWorld(CviasDetectionModel):
         """
         return YOLOWorld(weight_path)
 
-    def validate_classes(self, classes: list) -> list:
+    def validate_classes(self, classes: list) -> bool:
         """Validate classes whether they are detectable from the model..
 
         Args:
@@ -77,9 +77,7 @@ class YoloWorld(CviasDetectionModel):
         Returns:
             list: List of classes.
         """
-        if len(classes) > 0:
-            return True
-        return False
+        return len(classes) > 0
 
     def get_bounding_boxes(self, detected_objects: Results) -> list:
         """Get bounding boxes.
@@ -115,36 +113,37 @@ class YoloWorld(CviasDetectionModel):
             )
             logging.warning(msg)
 
-        class_ids = [self.english_to_class_id.get(c) for c in classes]
         detected_objects = self.model.predict(source=frame_img)[0]
         num_detections = len(detected_objects.boxes)
         is_detected = bool(num_detections > 0)
-        confidence_from_model = None
+        confidence_from_model = list(
+            detected_objects.boxes.conf.cpu().detach().numpy()
+        )
 
         detected_obj_set = DetectedObjectSet()
 
         if is_detected:
-            confidence_from_model = list(
-                detected_objects.boxes.conf.cpu().detach().numpy()
-            )
-            for idx, class_id in enumerate(class_ids):
-                class_name = self.class_id_to_english.get(class_id)
-                if class_name not in detected_obj_set.objects:
+            for idx, detected_class_id in enumerate(
+                detected_objects.boxes.cls.cpu().detach().numpy()
+            ):
+                class_name = self.class_id_to_english.get(detected_class_id)
+                if class_name not in detected_obj_set:
                     detected_obj_set[class_name] = DetectedObject(
                         name=class_name,
                         model_name=self.model_name,
                         is_detected=bool(num_detections > 0),
+                        bounding_box_of_all_obj=[],
                     )
                 detected_obj_set[class_name].confidence_of_all_obj.append(
                     confidence_from_model[idx]
                 )
-                detected_obj_set[
-                    class_name
-                ].bounding_box_of_all_obj = self.get_bounding_boxes(
-                    detected_objects
+                detected_obj_set[class_name].bounding_box_of_all_obj.append(
+                    detected_objects.boxes.data.cpu().numpy()[idx][:4].tolist()
                 )
                 detected_obj_set[class_name].number_of_detection += 1
-
+                detected_obj_set[class_name].confidence = max(
+                    detected_obj_set[class_name].confidence_of_all_obj
+                )
         for object_name, detected_object in detected_obj_set.items():
             detected_obj_set[object_name] = self.calibrate(detected_object)
 

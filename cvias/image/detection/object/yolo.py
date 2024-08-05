@@ -76,9 +76,7 @@ class Yolo(CviasDetectionModel):
         Returns:
             list: List of classes.
         """
-        if len(classes) > 0:
-            return True
-        return False
+        return len(classes) > 0
 
     def get_bounding_boxes(self, detected_objects: Results) -> list:
         """Get bounding boxes.
