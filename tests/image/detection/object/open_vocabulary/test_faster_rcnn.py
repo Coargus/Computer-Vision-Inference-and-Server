@@ -6,7 +6,9 @@ from cogcvutil import read_image
 from cvias.common.utils_mmdet import install_dependencies
 
 install_dependencies()
-from cvias.image.detection.object.open_vocabulary.faster_rcnn import FasterRCNN
+from cvias.image.detection.object.open_vocabulary.faster_rcnn import (  # noqa: E402
+    FasterRCNN,
+)
 
 ROOT_DIR = Path(__file__).parent.parent.parent.parent.parent.parent
 SAMPLE_DATA_DIR = ROOT_DIR / "sample_data"
