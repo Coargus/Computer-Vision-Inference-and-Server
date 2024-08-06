@@ -144,12 +144,10 @@ class YoloWorld(CviasDetectionModel):
                 detected_obj_set[class_name].confidence = max(
                     detected_obj_set[class_name].confidence_of_all_obj
                 )
-        for object_name, detected_object in detected_obj_set.items():
-            detected_obj_set[object_name] = self.calibrate(detected_object)
-
         if self.calibration_method:
             # calibrate confidence score
-            return self.calibrate(detected_object)
+            for detected_object in detected_obj_set.values():
+                self.calibrate(detected_object)
 
         return detected_obj_set
 
