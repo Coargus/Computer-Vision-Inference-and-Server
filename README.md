@@ -22,6 +22,9 @@ pip install -e .
 Available model list in the class script
 
 ```python
+from cvias.common.utils_mmdet import install_dependencies
+install_dependencies()
+
 from cvias.image.detection.object.open_vocabulary.faster_rcnn import FasterRCNN
 
 model_list = FasterRCNN.available_models()
