@@ -14,6 +14,44 @@ logging.basicConfig(
 ROOT_DIR = Path(__file__).parent.parent.parent
 
 
+def mmdet_install() -> None:
+    """Install mmdet dependencies."""
+    try:
+        # Upgrade pip
+        subprocess.run(
+            ["python3", "-m", "pip", "install", "--upgrade", "pip"],  # noqa: S603, S607
+            check=True,
+        )
+
+        # Install PyTorch
+        subprocess.run(
+            ["python3", "-m", "pip", "install", "torch==1.13.1"],  # noqa: S603, S607
+            check=True,
+        )
+
+        # Install torchvision
+        subprocess.run(
+            ["python3", "-m", "pip", "install", "torchvision==0.15.1"],  # noqa: S603, S607
+            check=True,
+        )
+
+        # Install openmim
+        subprocess.run(
+            ["python3", "-m", "pip", "install", "-U", "openmim"],  # noqa: S603, S607
+            check=True,
+        )
+
+        # Install mmdetection
+        subprocess.run(
+            ["python3", "-m", "pip", "install", "mmdet==3.0.0"],  # noqa: S603, S607
+            check=True,
+        )
+
+    except subprocess.CalledProcessError as e:
+        msg = f"An error occurred: {e}"
+        logging.exception(msg)
+
+
 def check_and_install(package: str) -> None:
     """Check if the package is installed and install it if it is not."""
     try:
@@ -29,7 +67,7 @@ def check_and_install(package: str) -> None:
         logging.info(msg)
         os.chdir(ROOT_DIR)
         try:
-            subprocess.run(["make", "mmdet_install"], check=True)  # noqa: S607, S603
+            mmdet_install()
         except subprocess.CalledProcessError:
             msg = (
                 "Failed to install mmdet dependencies.",
