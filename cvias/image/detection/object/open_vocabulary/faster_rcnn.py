@@ -3,15 +3,19 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from pprint import pprint
+from typing import TYPE_CHECKING
 
-import numpy as np
 from cog_cv_abstraction.schema.detected_object import DetectedObject
 from cog_cv_abstraction.schema.detected_object_set import DetectedObjectSet
 from mmdet.apis import inference_detector
 
 from cvias.image.detection.mmdetection import MMDetection
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    import numpy as np
 
 MODEL_PATH = {
     "faster-rcnn_r50_fpn_1x_coco": "https://download.openxlab.org.cn/models/mmdetection/FasterR-CNN/weight/faster-rcnn_r101_fpn_1x_coco",
@@ -31,6 +35,17 @@ class FasterRCNN(MMDetection):
         """Initialization."""
         super().__init__(model_name, explicit_checkpoint_path, gpu_number)
         self.model_name = model_name
+
+    def get_class_id_from_name(self, class_name: str) -> int:
+        """Get class ID from class name.
+
+        Args:
+            class_name (str): Class name.
+
+        Returns:
+            int: Class ID.
+        """
+        return self.english_to_class_id.get(class_name)
 
     def detect(self, frame_img: np.ndarray, classes: list | None = None) -> any:
         """Detect object in frame.
