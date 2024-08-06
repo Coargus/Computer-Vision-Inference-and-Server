@@ -104,8 +104,8 @@ class MMDetection(CviasDetectionModel):
             ]
 
             try:
-                subprocess.run(
-                    command,  # noqa: S603
+                subprocess.run(  # noqa: S603, RUF100
+                    command,  # noqa: S603, RUF100
                     check=True,
                     capture_output=True,
                     text=True,
