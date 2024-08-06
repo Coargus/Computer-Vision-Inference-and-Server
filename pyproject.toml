@@ -22,10 +22,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "cog_cv_abstraction @ git+https://github.com/Coargus/computer-vision-model-abstraction.git",
-    "cogutil @ git+https://github.com/Coargus/cogutil.git#egg=cogutil",
+    "cog_cv_abstraction@git+https://github.com/Coargus/computer-vision-model-abstraction.git@v0.0.2",
+    "cogutil@git+https://github.com/Coargus/cogutil.git#egg=cogutil",
     "cogcvutil@git+https://github.com/Coargus/cogcvutil.git",
-    "calibrate_cv @ git+https://github.com/Coargus/computer-vision-model-calibration.git",
+    "calibrate_cv@git+https://github.com/Coargus/computer-vision-model-calibration.git",
     "ultralytics",
 ]
 
