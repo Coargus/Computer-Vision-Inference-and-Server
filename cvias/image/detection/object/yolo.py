@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import warnings
+from pprint import pprint
 from typing import TYPE_CHECKING
 
 from cog_cv_abstraction.schema.detected_object import DetectedObject
@@ -175,3 +176,9 @@ class Yolo(CviasDetectionModel):
             int: Class id.
         """
         return self.english_to_class_id.get(class_name)
+
+    @staticmethod
+    def available_models() -> None:
+        """Get available models."""
+        pprint(MODEL_PATH.keys())  # noqa: T203
+        return list(MODEL_PATH.keys())
