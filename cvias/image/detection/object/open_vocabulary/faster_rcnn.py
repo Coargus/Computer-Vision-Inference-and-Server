@@ -1,5 +1,7 @@
 """Faster RCNN model for open vocabulary object detection."""
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
 from pprint import pprint
@@ -12,7 +14,7 @@ from mmdet.apis import inference_detector
 from cvias.image.detection.mmdetection import MMDetection
 
 MODEL_PATH = {
-    "faster_rcnn_r50_fpn_1x_coco": "https://download.openxlab.org.cn/models/mmdetection/FasterR-CNN/weight/faster-rcnn_r101_fpn_1x_coco",
+    "faster-rcnn_r50_fpn_1x_coco": "https://download.openxlab.org.cn/models/mmdetection/FasterR-CNN/weight/faster-rcnn_r101_fpn_1x_coco",
     "faster-rcnn_x101-64x4d_fpn_ms-3x_coco": "https://download.openxlab.org.cn/models/mmdetection/FasterR-CNN/weight/faster-rcnn_x101-64x4d_fpn_2x_coco",
 }
 
@@ -22,7 +24,7 @@ class FasterRCNN(MMDetection):
 
     def __init__(
         self,
-        model_name: str = "faster_rcnn_r50_fpn_1x_coco",
+        model_name: str = "faster-rcnn_r50_fpn_1x_coco",
         explicit_checkpoint_path: Path | None = None,
         gpu_number: int = 0,
     ) -> None:

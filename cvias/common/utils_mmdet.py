@@ -19,31 +19,31 @@ def mmdet_install() -> None:
     try:
         # Upgrade pip
         subprocess.run(
-            ["python3", "-m", "pip", "install", "--upgrade", "pip"],  # noqa: S603, S607
+            ["python3", "-m", "pip", "install", "--upgrade", "pip"],  # noqa: S603, S607 RUF100
             check=True,
         )
 
         # Install PyTorch
         subprocess.run(
-            ["python3", "-m", "pip", "install", "torch==1.13.1"],  # noqa: S603, S607
+            ["python3", "-m", "pip", "install", "torch==1.13.1"],  # noqa: S603, S607 RUF100
             check=True,
         )
 
         # Install torchvision
         subprocess.run(
-            ["python3", "-m", "pip", "install", "torchvision==0.15.1"],  # noqa: S603, S607
+            ["python3", "-m", "pip", "install", "torchvision==0.15.1"],  # noqa: S603, S607 RUF100
             check=True,
         )
 
         # Install openmim
         subprocess.run(
-            ["python3", "-m", "pip", "install", "-U", "openmim"],  # noqa: S603, S607
+            ["python3", "-m", "pip", "install", "-U", "openmim"],  # noqa: S603, S607 RUF100
             check=True,
         )
 
         # Install mmdetection
         subprocess.run(
-            ["python3", "-m", "pip", "install", "mmdet==3.0.0"],  # noqa: S603, S607
+            ["python3", "-m", "pip", "install", "mmdet==3.0.0"],  # noqa: S603, S607 RUF100
             check=True,
         )
 
