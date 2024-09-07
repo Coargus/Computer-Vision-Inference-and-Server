@@ -43,7 +43,7 @@ model.detect(image)
 ```python
 from cvias.image.detection.object.yolo import Yolo
 
-model_list = YoloWorld.available_models()
+model_list = Yolo.available_models()
 
 model = Yolo(
     model_name="<select model from the list>",
