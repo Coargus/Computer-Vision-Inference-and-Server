@@ -4,7 +4,8 @@ import numpy as np
 if __name__ == "__main__":
     # Example usage
     viclip = ViClip(
-        "/opt/mars/mnt/model_weights/viclip/ViClip-InternVid-10M-FLT.pth"
+        size="l",
+        pretrained_model_path="/opt/mars/mnt/model_weights/viclip/ViClip-InternVid-10M-FLT.pth"
     )
     seed = 42  # Set your desired seed
     rng = np.random.default_rng(seed)  # Initialize RNG with a seed
