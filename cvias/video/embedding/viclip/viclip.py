@@ -10,11 +10,14 @@ from cog_cv_abstraction.video.embedding._base import (
 )
 from cogutil.torch import get_device
 
-from cvias.common.utils_pypkg import import_or_install
+from cvias.common.utils_pypkg import install_requirements
 
-frames2tensor, get_viclip, get_vid_feat = import_or_install(
-    "viclip_base", ["frames2tensor", "get_viclip", "get_vid_feat"]
-)
+try:
+    from .viclip_base import frames2tensor, get_viclip, get_vid_feat
+
+except ModuleNotFoundError:
+    install_requirements("viclip")
+    from .viclip_base import frames2tensor, get_viclip, get_vid_feat
 
 if TYPE_CHECKING:
     from torch import Tensor
