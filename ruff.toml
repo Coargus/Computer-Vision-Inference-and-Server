@@ -22,7 +22,8 @@ exclude = [
     "node_modules",
     "venv",
     "test_scripts",
-    "viclip_base"
+    "viclip_base",
+    "from_src"
 ]
 
 # Same as Black.
