@@ -1,9 +1,11 @@
 """CVIAS's Vision Language Module (InternVL)."""
 
 import logging
+import re
 
 import numpy as np
 import torch
+from cog_cv_abstraction.schema.detected_object import DetectedObject
 from cog_cv_abstraction.vision_language._base import VisionLanguageModelBase
 from PIL import Image
 from transformers import AutoModel, AutoTokenizer
@@ -30,6 +32,7 @@ class InternVL(VisionLanguageModelBase):
                 "The model will be downloaded to the HuggingFace cache dir.",
             )
         )
+        self.model_name = "InternVL"
         self._path = f"OpenGVLab/{model_name}"
         self._num_gpus = torch.cuda.device_count()
         device_map = split_model(model_name)
@@ -119,4 +122,49 @@ class InternVL(VisionLanguageModelBase):
             num_patches_list=num_patches_list,
             history=None,
             return_history=True,
+        )
+
+    def detect(
+        self,
+        frame_img: np.ndarray,
+        scene_description: str,
+        threshold: float,
+    ) -> DetectedObject:
+        """Detect objects in the given frame image.
+
+        Args:
+            frame_img (np.ndarray): The image frame to process.
+            scene_description (str): Description of the scene.
+            threshold (float): Detection threshold.
+
+        Returns:
+            DetectedObject: Detected objects with their details.
+        """
+        parsing_rule = (
+            "You must return a single float confidence value in a scale 0 to 10"
+            "For example: 1.0,2.1,3.2,4.3,...,10.0"
+            "Do not add any chatter."
+            "Do not say that I cannot determine. Do your best."
+        )
+        prompt = (
+            rf"How confidently can you say that the image describe {scene_description}."  # noqa: E501
+            f"[PARSING RULE]\n:{parsing_rule}"
+        )
+        try:
+            confidence_str = self.infer_with_image(
+                language=prompt, image=frame_img
+            )
+            float_search = re.search(r"\d+(\.\d+)?", confidence_str)
+            confidence = float(float_search.group()) if float_search else 0.0
+        except SyntaxError:
+            float_search = re.search(r"\d+(\.\d+)?", confidence_str)
+            confidence = float(float_search.group()) if float_search else 0.0
+        confidence = min(confidence, 1.0)
+        return DetectedObject(
+            name=scene_description,
+            model_name=self.model_name,
+            confidence=round(confidence, 3),
+            probability=round(confidence, 3),
+            number_of_detection=1,
+            is_detected=bool(confidence > threshold),
         )
