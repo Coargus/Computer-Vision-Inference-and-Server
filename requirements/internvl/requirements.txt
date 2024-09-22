@@ -1,0 +1,6 @@
+accelerate
+transformers
+flash-attn
+sentencepiece
+bitsandbytes
+decord
