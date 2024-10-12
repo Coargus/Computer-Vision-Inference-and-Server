@@ -144,7 +144,7 @@ class InternVL(VisionLanguageModelBase):
         parsing_rule = [
             "You must only return a Yes or No, and not both, to any question asked. "
             "You must not include any other symbols, information, text, justification in your answer or repeat Yes or No multiple times.",
-            "For example, if the question is 'Is there a cat present in the Image?', the answer must be 'Yes' or 'No'.",
+            "For example, if the question is 'Is there a cat present in the Image?', the answer must only be 'Yes' or 'No'.",
         ]
         parsing_rule = "\n".join(parsing_rule)
         prompt = (
