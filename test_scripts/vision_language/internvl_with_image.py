@@ -3,8 +3,9 @@ import numpy as np
 
 if __name__ == "__main__":
     # Example usage
-    vlm = InternVL(model_name="InternVL2-40B")
+    vlm = InternVL(model_name="InternVL2-8B")
     prompt = "Please describe the image shortly."
-    vlm.infer_with_image(language=prompt,
-                         image_path="<path_to_image>")
+    des = vlm.infer_with_image(language=prompt,
+                         image_path="/home/hg22723/projects/computer-vision-inference-and-server/sample_data/coco_bus_and_car.png")
     
+    print(des)
