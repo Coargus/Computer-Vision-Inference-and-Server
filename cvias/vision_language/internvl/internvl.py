@@ -246,7 +246,8 @@ class InternVL(VisionLanguageModelBase):
             print(f'dynamic ViT batch size: {image_bs}')
 
         for num_patches in num_patches_list:
-            image_tokens = IMG_START_TOKEN + IMG_CONTEXT_TOKEN * self.model.num_image_token * num_patches + IMG_END_TOKEN
+            context_tokens = IMG_CONTEXT_TOKEN * self.model.num_image_token * num_patches
+            image_tokens = IMG_START_TOKEN + context_tokens + IMG_END_TOKEN
             query = query.replace('<image>', image_tokens, 1)
 
         model_inputs = tokenizer(query, return_tensors='pt')
@@ -262,11 +263,16 @@ class InternVL(VisionLanguageModelBase):
             attention_mask=attention_mask,
             **generation_config
         )
-        response = tokenizer.batch_decode(generation_output.sequences, skip_special_tokens=True)[0]
+        response = tokenizer.batch_decode(
+            generation_output.sequences, 
+            skip_special_tokens=True
+        )[0]
         response = response.split(template.sep)[0].strip()
         
-
-        logits_to_compute = [pos for pos in range(generation_output.sequences.shape[-1]) if generation_output.sequences[0, pos].item() != eos_token_id]        
+        
+        logits_to_compute = np.where(
+            generation_output.sequences[0].detach().cpu().numpy() != eos_token_id
+        )[0]      
         confidence = 1.0
         for logit in logits_to_compute:
             token = generation_output.sequences[0, logit].item()
