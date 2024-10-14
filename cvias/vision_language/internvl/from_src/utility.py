@@ -103,8 +103,34 @@ def load_image(image, input_size=448, max_num=12):
     pixel_values = torch.stack(pixel_values)
     return pixel_values
 
+def assign_device_map(model_name, manual_gpu_id=0):
+    device_map = {}
+    world_size = torch.cuda.device_count()
+    num_layers = {
+        "InternVL2-1B": 24,
+        "InternVL2-2B": 24,
+        "InternVL2-4B": 32,
+        "InternVL2-8B": 32,
+        "InternVL2-26B": 48,
+        "InternVL2-40B": 60,
+        "InternVL2-Llama3-76B": 80,
+    }[model_name]
+    for layer_idx in range(num_layers):
+        device_map[f"language_model.model.layers.{layer_idx}"] = manual_gpu_id
+    
+    device_map["vision_model"] = manual_gpu_id
+    device_map["mlp1"] = manual_gpu_id
+    device_map["language_model.model.tok_embeddings"] = manual_gpu_id
+    device_map["language_model.model.embed_tokens"] = manual_gpu_id
+    device_map["language_model.output"] = manual_gpu_id
+    device_map["language_model.model.norm"] = manual_gpu_id
+    device_map["language_model.lm_head"] = manual_gpu_id
+    device_map[f"language_model.model.layers.{num_layers - 1}"] = manual_gpu_id
 
-def split_model(model_name):
+    return device_map
+
+
+def split_model(model_name, manual_gpu_id=None):
     device_map = {}
     world_size = torch.cuda.device_count()
     num_layers = {
@@ -123,16 +149,18 @@ def split_model(model_name):
     layer_cnt = 0
     for i, num_layer in enumerate(num_layers_per_gpu):
         for j in range(num_layer):
+            
             device_map[f"language_model.model.layers.{layer_cnt}"] = i
             layer_cnt += 1
-    device_map["vision_model"] = 0
-    device_map["mlp1"] = 0
-    device_map["language_model.model.tok_embeddings"] = 0
-    device_map["language_model.model.embed_tokens"] = 0
-    device_map["language_model.output"] = 0
-    device_map["language_model.model.norm"] = 0
-    device_map["language_model.lm_head"] = 0
-    device_map[f"language_model.model.layers.{num_layers - 1}"] = 0
+    
+    device_map["vision_model"] = manual_gpu_id
+    device_map["mlp1"] = manual_gpu_id
+    device_map["language_model.model.tok_embeddings"] = manual_gpu_id
+    device_map["language_model.model.embed_tokens"] = manual_gpu_id
+    device_map["language_model.output"] = manual_gpu_id
+    device_map["language_model.model.norm"] = manual_gpu_id
+    device_map["language_model.lm_head"] = manual_gpu_id
+    device_map[f"language_model.model.layers.{num_layers - 1}"] = manual_gpu_id
 
     return device_map
 
@@ -168,6 +196,7 @@ def load_video_from_file(
     video_path: str,
     input_size=448,
     max_num=1,
+    device_id=0,
 ):
     video = vflow.read_video(video_path)
     pixel_values_list, num_patches_list = [], []
@@ -185,7 +214,7 @@ def load_video_from_file(
         pixel_values = [transform(tile) for tile in img]
         pixel_values = torch.stack(pixel_values)
         num_patches_list.append(pixel_values.shape[0])
-        pixel_values_list.append(pixel_values.to(torch.bfloat16))
+        pixel_values_list.append(pixel_values.to(torch.bfloat16).cuda(device_id))
     return torch.cat(pixel_values_list), num_patches_list
 
 
@@ -193,6 +222,7 @@ def load_video_from_seq_of_frames(
     seq_of_frames: list[np.ndarray],
     input_size=448,
     max_num=1,
+    device_id=0,
 ):
     pixel_values_list, num_patches_list = [], []
     transform = build_transform(input_size=input_size)
@@ -203,12 +233,12 @@ def load_video_from_seq_of_frames(
         pixel_values = [transform(tile) for tile in img]
         pixel_values = torch.stack(pixel_values)
         num_patches_list.append(pixel_values.shape[0])
-        pixel_values_list.append(pixel_values.to(torch.bfloat16))
+        pixel_values_list.append(pixel_values.to(torch.bfloat16).cuda(device_id))
     return torch.cat(pixel_values_list), num_patches_list
 
 
 def load_video(
-    video_path, bound=None, input_size=448, max_num=1, num_segments=32
+    video_path, bound=None, input_size=448, max_num=1, num_segments=32,device_id=0,
 ):
     vr = VideoReader(video_path, ctx=cpu(0), num_threads=1)
     max_frame = len(vr) - 1
@@ -227,6 +257,6 @@ def load_video(
         pixel_values = [transform(tile) for tile in img]
         pixel_values = torch.stack(pixel_values)
         num_patches_list.append(pixel_values.shape[0])
-        pixel_values_list.append(pixel_values.to(torch.bfloat16))
+        pixel_values_list.append(pixel_values.to(torch.bfloat16).to(torch.bfloat16).cuda(device_id))
     pixel_values = torch.cat(pixel_values_list)
     return pixel_values, num_patches_list
