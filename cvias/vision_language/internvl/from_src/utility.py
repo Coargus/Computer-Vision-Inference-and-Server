@@ -29,7 +29,31 @@ def build_transform(input_size: int) -> T.Compose:
         ]
     )
 
+def assign_device_map(model_name, manual_gpu_id=0):
+    device_map = {}
+    world_size = torch.cuda.device_count()
+    num_layers = {
+        "InternVL2-1B": 24,
+        "InternVL2-2B": 24,
+        "InternVL2-4B": 32,
+        "InternVL2-8B": 32,
+        "InternVL2-26B": 48,
+        "InternVL2-40B": 60,
+        "InternVL2-Llama3-76B": 80,
+    }[model_name]
+    for layer_idx in range(num_layers):
+        device_map[f"language_model.model.layers.{layer_idx}"] = manual_gpu_id
+    
+    device_map["vision_model"] = manual_gpu_id
+    device_map["mlp1"] = manual_gpu_id
+    device_map["language_model.model.tok_embeddings"] = manual_gpu_id
+    device_map["language_model.model.embed_tokens"] = manual_gpu_id
+    device_map["language_model.output"] = manual_gpu_id
+    device_map["language_model.model.norm"] = manual_gpu_id
+    device_map["language_model.lm_head"] = manual_gpu_id
+    device_map[f"language_model.model.layers.{num_layers - 1}"] = manual_gpu_id
 
+    return device_map
 def find_closest_aspect_ratio(
     aspect_ratio, target_ratios, width, height, image_size
 ):

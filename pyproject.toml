@@ -28,9 +28,7 @@ dependencies = [
     "calibrate_cv@git+https://github.com/Coargus/computer-vision-model-calibration.git",
     "vflow@git+https://github.com/Coargus/vflow@v0.0.3-dev",
     "ultralytics",
-    "transformers",
-    "decord",
-    "timm"
+    
 ]
 
 [project.urls]
