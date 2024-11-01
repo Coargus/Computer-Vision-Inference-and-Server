@@ -1,5 +1,6 @@
 """CVIAS's Vision Language Module (InternVL)."""
 
+import gc
 import logging
 
 import numpy as np
@@ -66,6 +67,24 @@ class InternVL(VisionLanguageModelBase):
         self.tokenizer = AutoTokenizer.from_pretrained(
             self._path, trust_remote_code=True, use_fast=False
         )
+
+    def reset_model(self) -> None:
+        """Reset the model to its initial state using pretrained weights."""
+        self.model = AutoModel.from_pretrained(
+            self._path,
+            torch_dtype=torch.bfloat16,
+            low_cpu_mem_usage=True,
+            use_flash_attn=True,
+            trust_remote_code=True,
+        ).eval()
+        self.model.apply(self.move_tensors_to_gpu)
+
+    def clear_gpu_memory(self) -> None:
+        """Clear CUDA cache and run garbage collection to free GPU memory."""
+        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.ipc_collect()
+        gc.collect()  # Run garbage collector
 
     def move_tensors_to_gpu(
         self,
@@ -154,6 +173,7 @@ class InternVL(VisionLanguageModelBase):
         frame_img: np.ndarray,
         scene_description: str,
         threshold: float = 0.1,
+        confidence_as_token_probability: bool = False,
     ) -> DetectedObject:
         """Detect objects in the given frame image.
 
@@ -182,10 +202,11 @@ class InternVL(VisionLanguageModelBase):
         # TODO: Add a check for the response to be Yes or NO or clean up response better  # noqa: E501
         if "yes" in response.lower():
             detected = True
+            probability = confidence
             if confidence <= threshold:
                 confidence = 0.0
                 detected = False
-            probability = confidence
+
         else:
             detected = False
             probability = 0.0
@@ -194,7 +215,7 @@ class InternVL(VisionLanguageModelBase):
             name=scene_description,
             model_name=self.model_name,
             confidence=round(confidence, 3),
-            probability=round(probability, 3),
+            probability=round(confidence, 3),
             number_of_detection=1,
             is_detected=detected,
         )
@@ -323,5 +344,5 @@ class InternVL(VisionLanguageModelBase):
             token = generation_output.sequences[0, logit].item()
             prob = softmax(generation_output.logits[logit])[0, token]
             confidence = prob.item() * confidence
-
+        self.clear_gpu_memory()
         return response, confidence

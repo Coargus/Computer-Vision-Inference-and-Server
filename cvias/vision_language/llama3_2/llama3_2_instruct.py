@@ -1,6 +1,8 @@
 """CVIAS's Vision Language Module (InternVL)."""
 
+import gc
 import logging
+import re
 
 import numpy as np
 import torch
@@ -42,6 +44,7 @@ class Llama32VisionInstruct(VisionLanguageModelBase):
         self.model_name = model_name
         self._path = f"meta-llama/{model_name}"
         device_map = {"": f"cuda:{device}"}
+
         if multi_gpus:
             device_map = "auto"
 
@@ -51,6 +54,16 @@ class Llama32VisionInstruct(VisionLanguageModelBase):
             device_map=device_map,
         )
         self.processor = AutoProcessor.from_pretrained(self._path)
+        self.device = self.model.device
+        if multi_gpus:
+            self.device = next(self.model.modules()).device
+
+    def clear_gpu_memory(self) -> None:
+        """Clear CUDA cache and run garbage collection to free GPU memory."""
+        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.ipc_collect()
+        gc.collect()  # Run garbage collector
 
     def post_process_output(
         self, output: str, return_index: bool = False
@@ -104,7 +117,7 @@ class Llama32VisionInstruct(VisionLanguageModelBase):
         )
         inputs = self.processor(
             image, input_text, add_special_tokens=False, return_tensors="pt"
-        ).to(self.model.device)
+        ).to(self.device)
 
         output = self.model.generate(
             **inputs,
@@ -146,14 +159,13 @@ class Llama32VisionInstruct(VisionLanguageModelBase):
         )
         inputs = self.processor(
             image, input_text, add_special_tokens=False, return_tensors="pt"
-        ).to(self.model.device)
+        ).to(self.device)
 
         generation_config = {
             "output_scores": True,
             "output_logits": True,
             "return_dict_in_generate": True,
         }
-
         output = self.model.generate(
             **inputs, max_new_tokens=max_new_tokens, **generation_config
         )
@@ -189,6 +201,7 @@ class Llama32VisionInstruct(VisionLanguageModelBase):
         frame_img: np.ndarray,
         scene_description: str,
         threshold: float = 0.1,
+        confidence_as_token_probability: bool = False,
     ) -> DetectedObject:
         """Detect objects in the given frame image.
 
@@ -196,34 +209,70 @@ class Llama32VisionInstruct(VisionLanguageModelBase):
             frame_img (np.ndarray): The image frame to process.
             scene_description (str): Description of the scene.
             threshold (float): Detection threshold.
+            confidence_as_token_probability (bool):
+                Whether to use token probability as confidence.
 
         Returns:
             DetectedObject: Detected objects with their details.
         """
-        parsing_rule = [
-            "You must only return a Yes or No, and not both, to any question asked. "  # noqa: E501
-            "You must not include any other symbols, information, text, justification in your answer or repeat Yes or No multiple times.",  # noqa: E501
-            "For example, if the question is 'Is there a cat present in the Image?', the answer must only be 'Yes' or 'No'.",  # noqa: E501
-        ]
-        parsing_rule = "\n".join(parsing_rule)
-        prompt = (
-            rf"Is there a {scene_description} present in the image? "
-            f"[PARSING RULE]\n:{parsing_rule}"
-        )
+        if confidence_as_token_probability:
+            parsing_rule = [
+                "You must only return a Yes or No, and not both, to any question asked. "  # noqa: E501
+                "You must not include any other symbols, information, text, justification in your answer or repeat Yes or No multiple times.",  # noqa: E501
+                "For example, if the question is 'Is there a cat present in the Image?', the answer must only be 'Yes' or 'No'.",  # noqa: E501
+            ]
+            parsing_rule = "\n".join(parsing_rule)
+            prompt = (
+                rf"Is there a {scene_description} present in the image? "
+                f"[PARSING RULE]\n:{parsing_rule}"
+            )
 
-        response, confidence = self.infer_with_image_confidence(
-            language=prompt, image=frame_img
-        )
-        # TODO: Add a check for the response to be Yes or NO or clean up response better  # noqa: E501
-        if "yes" in response.lower():
-            detected = True
-            if confidence <= threshold:
-                confidence = 0.0
+            response, confidence = self.infer_with_image_confidence(
+                language=prompt, image=frame_img
+            )
+            # TODO: Add a check for the response to be Yes or NO or clean up response better  # noqa: E501
+            if "yes" in response.lower():
+                detected = True
+                if confidence <= threshold:
+                    confidence = 0.0
+                    detected = False
+                probability = confidence
+            else:
                 detected = False
             probability = confidence
         else:
-            detected = False
-            probability = 0.0
+            parsing_rule = (
+                "You must return a single float confidence value in a scale 0 to 10"
+                "For example: 0.1,1.4,2.6,3.7,4.2,5.4,6.2,7.7,8.7,9.8,10.0"
+                "Do not add any chatter."
+                "Do not say that I cannot determine. Do your best."
+            )
+            prompt = (
+                rf"How confidently can you say that the image describe {scene_description}."  # noqa: E501
+                f"[PARSING RULE]\n:{parsing_rule}"
+            )
+            try:
+                confidence_str = self.infer_with_image(
+                    language=prompt, image=frame_img
+                )
+                float_search = re.search(r"\d+(\.\d+)?", confidence_str)
+                confidence = (
+                    float(float_search.group()) if float_search else 0.10
+                )
+            except SyntaxError:
+                float_search = re.search(r"\d+(\.\d+)?", confidence_str)
+                confidence = (
+                    float(float_search.group()) if float_search else 0.10
+                )
+            confidence = confidence * 1 / 10  # scale the confidence to 0-1
+            confidence = min(confidence, 1.0)
+            probability = confidence
+            detected = True
+            if confidence <= threshold:
+                detected = False
+
+        self.clear_gpu_memory()
+
         return DetectedObject(
             name=scene_description,
             model_name=self.model_name,
