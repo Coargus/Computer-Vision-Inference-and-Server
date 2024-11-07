@@ -1,7 +1,6 @@
 """CVIAS's Vision Language Module (InternVL)."""
 
 import logging
-import re
 
 import numpy as np
 import torch
@@ -178,7 +177,7 @@ class InternVL(VisionLanguageModelBase):
             detected = False
             probability = 0.0
         
-        #print(response)
+        #print(response)  # noqa: ERA001
         return DetectedObject(
             name=scene_description,
             model_name=self.model_name,
