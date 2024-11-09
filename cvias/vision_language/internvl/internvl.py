@@ -154,6 +154,7 @@ class InternVL(VisionLanguageModelBase):
         frame_img: np.ndarray,
         scene_description: str,
         threshold: float = 0.1,
+        filter_threshold: bool = True,
     ) -> DetectedObject:
         """Detect objects in the given frame image.
 
@@ -172,23 +173,47 @@ class InternVL(VisionLanguageModelBase):
         ]
         parsing_rule = "\n".join(parsing_rule)
         prompt = (
-            rf"Is there a {scene_description} present in the image? "
-            f"[PARSING RULE]\n:{parsing_rule}"
+            rf"Is there {scene_description} in the image? "
+            f" FINAL RULES THAT MUST BE FOLLOWED FOR THE OUTPUT \n:{parsing_rule}"
         )
 
+        self.model.conv_template.messages = []
         response, confidence = self.infer_with_image_confidence(
-            language=prompt, image=frame_img
+            language=prompt, 
+            image=frame_img,
+            max_new_tokens=64
         )
         # TODO: Add a check for the response to be Yes or NO or clean up response better  # noqa: E501
-        if "yes" in response.lower():
-            detected = True
-            if confidence <= threshold:
-                confidence = 0.0
+        
+        if filter_threshold:
+            if "yes" in response.lower():
+                if confidence <= threshold:
+                    probability = 1.0 - confidence
+                    detected = False
+                else:
+                    detected = True
+                    probability = confidence
+            elif "no" in response.lower():
+                if confidence <= threshold:
+                    probability =   confidence
+                    detected = False
+                else:
+                    detected = True
+                    probability = 1 - confidence
+            else:
                 detected = False
-            probability = confidence
+                probability = 1.0
         else:
-            detected = False
-            probability = 0.0
+            if "yes" in response.lower():
+                detected = True
+                probability = confidence
+            elif "no" in response.lower():
+                detected = False
+                probability = confidence
+            else:
+                detected = False
+                probability = 1.0
+                
         return DetectedObject(
             name=scene_description,
             model_name=self.model_name,
@@ -266,7 +291,7 @@ class InternVL(VisionLanguageModelBase):
         num_patches_list = (
             [pixel_values.shape[0]] if pixel_values is not None else []
         )
-
+        #print(question)
         assert pixel_values is None or len(pixel_values) == sum(  # noqa: S101
             num_patches_list
         )
@@ -294,7 +319,8 @@ class InternVL(VisionLanguageModelBase):
             )
             image_tokens = IMG_START_TOKEN + context_tokens + IMG_END_TOKEN
             query = query.replace("<image>", image_tokens, 1)
-
+        
+        # print(len(query))
         model_inputs = tokenizer(query, return_tensors="pt")
         input_ids = model_inputs["input_ids"].cuda(self.device)
         attention_mask = model_inputs["attention_mask"].cuda(self.device)

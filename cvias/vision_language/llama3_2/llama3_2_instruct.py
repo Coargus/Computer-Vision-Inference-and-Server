@@ -189,6 +189,7 @@ class Llama32VisionInstruct(VisionLanguageModelBase):
         frame_img: np.ndarray,
         scene_description: str,
         threshold: float = 0.1,
+        filter_threshold: bool = True,
     ) -> DetectedObject:
         """Detect objects in the given frame image.
 
@@ -215,15 +216,35 @@ class Llama32VisionInstruct(VisionLanguageModelBase):
             language=prompt, image=frame_img
         )
         # TODO: Add a check for the response to be Yes or NO or clean up response better  # noqa: E501
-        if "yes" in response.lower():
-            detected = True
-            if confidence <= threshold:
-                confidence = 0.0
+        if filter_threshold:
+            if "yes" in response.lower():
+                if confidence <= threshold:
+                    probability = 1.0 - confidence
+                    detected = False
+                else:
+                    detected = True
+                    probability = confidence
+            elif "no" in response.lower():
+                if confidence <= threshold:
+                    probability =   confidence
+                    detected = False
+                else:
+                    detected = True
+                    probability = 1 - confidence
+            else:
                 detected = False
-            probability = confidence
+                probability = 1.0
         else:
-            detected = False
-            probability = 0.0
+            if "yes" in response.lower():
+                detected = True
+                probability = confidence
+            elif "no" in response.lower():
+                detected = False
+                probability = confidence
+            else:
+                detected = False
+                probability = 1.0
+                
         return DetectedObject(
             name=scene_description,
             model_name=self.model_name,
