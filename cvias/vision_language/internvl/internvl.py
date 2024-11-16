@@ -170,46 +170,60 @@ class InternVL(VisionLanguageModelBase):
 
     def detect(
         self,
-        frame_img: np.ndarray,
         scene_description: str,
-        threshold: float = 0.1,
-        confidence_as_token_probability: bool = False,
+        frame_img: np.ndarray | None = None,
+        seq_of_frames: list[np.ndarray] | None = None,
+        video_path: str | None = None,
+        threshold: float = 0.349,
+        confidence_as_token_probability: bool = True,
     ) -> DetectedObject:
         """Detect objects in the given frame image.
 
         Args:
             frame_img (np.ndarray): The image frame to process.
             scene_description (str): Description of the scene.
+            seq_of_frames (list[np.ndarray] | None):
+                List of video frames to process.
+            video_path (str | None): Path to video file to process.
             threshold (float): Detection threshold.
+            confidence_as_token_probability (bool):
+                Whether to use token probabilities for confidence.
 
         Returns:
             DetectedObject: Detected objects with their details.
         """
-        parsing_rule = [
-            "You must only return a Yes or No, and not both, to any question asked. "  # noqa: E501
-            "You must not include any other symbols, information, text, justification in your answer or repeat Yes or No multiple times.",  # noqa: E501
-            "For example, if the question is 'Is there a cat present in the Image?', the answer must only be 'Yes' or 'No'.",  # noqa: E501
-        ]
-        parsing_rule = "\n".join(parsing_rule)
-        prompt = (
-            rf"Is there a {scene_description} present in the image? "
-            f"[PARSING RULE]\n:{parsing_rule}"
-        )
+        if confidence_as_token_probability:
+            parsing_rule = [
+                "You must only return a Yes or No, and not both, to any question asked. "  # noqa: E501
+                "You must not include any other symbols, information, text, justification in your answer or repeat Yes or No multiple times.",  # noqa: E501
+                "For example, if the question is 'Is there a cat present in the Image?', the answer must only be 'Yes' or 'No'.",  # noqa: E501
+            ]
+            parsing_rule = "\n".join(parsing_rule)
+            prompt = (
+                rf"Is there a {scene_description} present in the image? "
+                f"[PARSING RULE]\n:{parsing_rule}"
+            )
 
-        response, confidence = self.infer_with_image_confidence(
-            language=prompt, image=frame_img
-        )
-        # TODO: Add a check for the response to be Yes or NO or clean up response better  # noqa: E501
-        if "yes" in response.lower():
-            detected = True
-            probability = confidence
-            if confidence <= threshold:
-                confidence = 0.0
+            if seq_of_frames or video_path:
+                response, confidence = self.infer_with_video_confidence(
+                    language=prompt,
+                    seq_of_frames=seq_of_frames,
+                    video_path=video_path,
+                )
+            else:
+                response, confidence = self.infer_with_image_confidence(
+                    language=prompt, image=frame_img
+                )
+            # TODO: Add a check for the response to be Yes or NO or clean up response better  # noqa: E501
+            if "yes" in response.lower():
+                detected = True
+                if confidence <= threshold:
+                    confidence = 0.0
+                    detected = False
+
+            else:
                 detected = False
-
-        else:
-            detected = False
-            probability = 0.0
+                confidence = 0.0
 
         return DetectedObject(
             name=scene_description,
@@ -265,6 +279,7 @@ class InternVL(VisionLanguageModelBase):
         pixel_values: torch.Tensor,
         question: str,
         generation_config: dict,
+        num_patches_list: list[int] | None = None,
         IMG_START_TOKEN: str = "<img>",  # noqa: N803, S107
         IMG_END_TOKEN: str = "</img>",  # noqa: N803, S107
         IMG_CONTEXT_TOKEN: str = "<IMG_CONTEXT>",  # noqa: N803, S107
@@ -277,6 +292,7 @@ class InternVL(VisionLanguageModelBase):
             pixel_values: Image tensor input.
             question: The input question or prompt.
             generation_config: Configuration for text generation.
+            num_patches_list: List of number of patches for video frames.
             IMG_START_TOKEN: Token to mark the start of an image.
             IMG_END_TOKEN: Token to mark the end of an image.
             IMG_CONTEXT_TOKEN: Token for image context.
@@ -285,9 +301,10 @@ class InternVL(VisionLanguageModelBase):
         Returns:
             A tuple containing the generated response and its confidence score.
         """
-        num_patches_list = (
-            [pixel_values.shape[0]] if pixel_values is not None else []
-        )
+        if num_patches_list is None:
+            num_patches_list = (
+                [pixel_values.shape[0]] if pixel_values is not None else []
+            )
 
         assert pixel_values is None or len(pixel_values) == sum(  # noqa: S101
             num_patches_list
@@ -346,3 +363,55 @@ class InternVL(VisionLanguageModelBase):
             confidence = prob.item() * confidence
         self.clear_gpu_memory()
         return response, confidence
+
+    def infer_with_video_confidence(
+        self,
+        language: str,
+        seq_of_frames: list[np.ndarray] | None = None,
+        video_path: str | None = None,
+        max_new_tokens: int = 1024,
+        do_sample: bool = True,
+    ) -> tuple[str, float]:
+        """Perform video inference and return response with confidence score.
+
+        Args:
+            language (str): The input prompt or question.
+            seq_of_frames (list[np.ndarray] | None):
+                List of video frames as numpy arrays.
+            video_path (str | None): Path to the input video file.
+            max_new_tokens (int): Maximum number of new tokens to generate.
+            do_sample (bool): Whether to use sampling for generation.
+
+        Returns:
+            tuple[str, float]: Generated response and confidence score.
+        """
+        assert (  # noqa: S101
+            seq_of_frames is not None or video_path is not None
+        ), "One of 'seq_of_frames' or 'video_path' must be defined."
+
+        generation_config = {
+            "max_new_tokens": max_new_tokens,
+            "do_sample": do_sample,
+        }
+
+        if video_path:
+            pixel_values, num_patches_list = load_video_from_file(
+                video_path, device=self.device
+            )
+        else:
+            pixel_values, num_patches_list = load_video_from_seq_of_frames(
+                seq_of_frames=seq_of_frames, device=self.device
+            )
+
+        video_prefix = "".join(
+            [f"Frame{i+1}: <image>\n" for i in range(len(num_patches_list))]
+        )
+        language = video_prefix + language
+
+        return self.chat_with_confidence(
+            self.tokenizer,
+            pixel_values,
+            language,
+            generation_config,
+            num_patches_list=num_patches_list,
+        )

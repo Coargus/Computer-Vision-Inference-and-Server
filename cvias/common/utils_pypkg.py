@@ -2,13 +2,16 @@
 
 import json
 import logging
-import subprocess
+import os
 import sys
 from pathlib import Path
 
 from cogutil.download import coargus_cache_dir
 
 ROOT_PATH = Path(__file__).parent.parent.parent
+
+
+os.environ["PYDEVD_WARN_EVALUATION_TIMEOUT"] = "100"  # 30 seconds instead of 3
 
 
 def import_or_install(module_name: str, attributes: list[str]) -> list:
@@ -30,36 +33,32 @@ def install_requirements(module_name: str) -> None:
         module_package_path = (
             ROOT_PATH / "requirements" / module_name / "requirements.txt"
         )
-        logging.info(f"Installing required packages for {module_name}.")
+        logging.info(f"Installing required packages for {module_name}...")
+
         try:
-            subprocess.run(  # noqa: S603
+            # Use pip as a module with progress bar
+            import pip
+
+            pip.main(
                 [
-                    sys.executable,
-                    "-m",
-                    "pip",
                     "install",
                     "-r",
                     str(module_package_path),
-                ],
-                check=True,
-                capture_output=True,
-                text=True,
+                    "--progress-bar",
+                    "on",
+                ]
             )
-            # Ensure the directory exists before saving the metadata
-            model_metadata.parent.mkdir(
-                parents=True, exist_ok=True
-            )  # Create parent directories if they don't exist
 
-            with model_metadata.open(
-                "w"
-            ) as f:  # Open file for writing using Path object
-                json.dump({"dependency_install": True}, f)  # Save the JSON data
+            # Create metadata after successful installation
+            model_metadata.parent.mkdir(parents=True, exist_ok=True)
+            with model_metadata.open("w") as f:
+                json.dump({"dependency_install": True}, f)
 
-        except subprocess.CalledProcessError as e:
-            logging.exception(
-                f"Error occurred: {e.stderr}"
-            )  # Print the error output
-            logging.exception(
-                "Failed to install dependencies. Please check your internet connection and try again."  # noqa: E501
+            logging.info(
+                f"Successfully installed requirements for {module_name}"
             )
+
+        except Exception:
+            logging.exception("Error installing dependencies")
+            logging.exception("Failed to install dependencies.")
             sys.exit(1)

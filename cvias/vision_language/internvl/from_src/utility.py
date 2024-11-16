@@ -75,6 +75,10 @@ def find_closest_aspect_ratio(
 def dynamic_preprocess(
     image, min_num=1, max_num=12, image_size=448, use_thumbnail=False
 ):
+    # Convert numpy array to PIL Image if needed
+    if isinstance(image, np.ndarray):
+        image = Image.fromarray(image)
+    
     orig_width, orig_height = image.size
     aspect_ratio = orig_width / orig_height
 
@@ -192,6 +196,8 @@ def load_video_from_file(
     video_path: str,
     input_size=448,
     max_num=1,
+    device="cuda",
+    dtype=torch.bfloat16  # Add dtype parameter
 ):
     video = vflow.read_video(video_path)
     pixel_values_list, num_patches_list = [], []
@@ -209,7 +215,7 @@ def load_video_from_file(
         pixel_values = [transform(tile) for tile in img]
         pixel_values = torch.stack(pixel_values)
         num_patches_list.append(pixel_values.shape[0])
-        pixel_values_list.append(pixel_values.to(torch.bfloat16))
+        pixel_values_list.append(pixel_values.to(device))
     return torch.cat(pixel_values_list), num_patches_list
 
 
@@ -217,6 +223,8 @@ def load_video_from_seq_of_frames(
     seq_of_frames: list[np.ndarray],
     input_size=448,
     max_num=1,
+    device="cuda",
+    dtype=torch.bfloat16  # Add dtype parameter
 ):
     pixel_values_list, num_patches_list = [], []
     transform = build_transform(input_size=input_size)
@@ -225,9 +233,9 @@ def load_video_from_seq_of_frames(
             img, image_size=input_size, use_thumbnail=True, max_num=max_num
         )
         pixel_values = [transform(tile) for tile in img]
-        pixel_values = torch.stack(pixel_values)
+        pixel_values = torch.stack(pixel_values).to(dtype=dtype, device=device)  # Convert to bfloat16
         num_patches_list.append(pixel_values.shape[0])
-        pixel_values_list.append(pixel_values.to(torch.bfloat16))
+        pixel_values_list.append(pixel_values)
     return torch.cat(pixel_values_list), num_patches_list
 
 

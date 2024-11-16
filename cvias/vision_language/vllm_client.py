@@ -1,7 +1,4 @@
-from openai import OpenAI
-
-"""CVIAS's Vision Language Module (InternVL)."""
-
+"""Vision Language Model using VLLM."""
 
 import base64
 import math
@@ -10,17 +7,21 @@ from io import BytesIO
 
 import numpy as np
 from cog_cv_abstraction.schema.detected_object import DetectedObject
+from openai import OpenAI
 from PIL import Image
 
 
 class VisionLanguageModelVLLM:
+    """Vision Language Model using VLLM."""
+
     def __init__(
         self,
         endpoint: str,
         api_key: str,
         model: str,
         parallel_inference: bool = False,
-    ):
+    ) -> None:
+        """Initialize the VisionLanguageModelVLLM class."""
         self.client = None
         if not parallel_inference:
             self.client = OpenAI(
@@ -46,7 +47,7 @@ class VisionLanguageModelVLLM:
         image: np.ndarray | None = None,
         image_path: str | None = None,
         max_new_tokens: int = 1024,
-        add_generation_prompt: bool = True,
+        logprobs: bool = True,
     ) -> str:
         """Perform image inference with given video inputs."""
         assert (  # noqa: S101
@@ -64,7 +65,7 @@ class VisionLanguageModelVLLM:
             )
 
         else:
-            client = self.client.stream
+            client = self.client
 
         image_url = self.convert_np_image_to_url(image)
 
@@ -79,8 +80,8 @@ class VisionLanguageModelVLLM:
                 }
             ],
             model=self.model,
-            max_tokens=5,
-            logprobs=True,
+            max_tokens=max_new_tokens,
+            logprobs=logprobs,
         )
 
         response = chat_response.choices[0].message.content
@@ -137,7 +138,7 @@ class VisionLanguageModelVLLM:
             probability = confidence
         else:
             parsing_rule = (
-                "You must return a single float confidence value in a scale 0 to 10"
+                "You must return a single float confidence value in a scale 0 to 10"  # noqa: E501
                 "For example: 0.1,1.4,2.6,3.7,4.2,5.4,6.2,7.7,8.7,9.8,10.0"
                 "Do not add any chatter."
                 "Do not say that I cannot determine. Do your best."
@@ -174,24 +175,3 @@ class VisionLanguageModelVLLM:
             number_of_detection=1,
             is_detected=detected,
         )
-
-
-if __name__ == "__main__":
-    vision_language_model = VisionLanguageModelVLLM(
-        endpoint="http://localhost:8000/v1",
-        api_key="empty",
-        model="OpenGVLab/InternVL2-8B",
-    )
-
-    prompt = "Describe this image"
-
-    # * * * Example usage - 2 * * * #
-    image_path = "/opt/mars/_dev_/test_data/traffic.png"
-    image = Image.open(image_path).convert("RGB")
-    obj = vision_language_model.detect(
-        frame_img=np.array(image),
-        scene_description=prompt,
-        threshold=0.1,
-        confidence_as_token_probability=False,
-    )
-    print(obj)

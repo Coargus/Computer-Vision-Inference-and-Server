@@ -242,7 +242,7 @@ class Llama32VisionInstruct(VisionLanguageModelBase):
             probability = confidence
         else:
             parsing_rule = (
-                "You must return a single float confidence value in a scale 0 to 10"
+                "You must return a single float confidence value in a scale 0 to 10"  # noqa: E501
                 "For example: 0.1,1.4,2.6,3.7,4.2,5.4,6.2,7.7,8.7,9.8,10.0"
                 "Do not add any chatter."
                 "Do not say that I cannot determine. Do your best."
