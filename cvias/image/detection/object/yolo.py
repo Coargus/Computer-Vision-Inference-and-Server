@@ -149,11 +149,10 @@ class Yolo(CviasDetectionModel):
             # calibrate confidence score
             if "8" not in self.model_name:
                 logging.warning(
-                    "Temperature scaling calibration is only supported for YOLOv8 models."
+                    "Temperature scaling calibration is only supported for YOLOv8 models."  # noqa: E501
                 )
                 return self.no_calibration(detected_object)
-            else:
-                return self.calibrate(detected_object)
+            return self.calibrate(detected_object)
 
         return self.no_calibration(detected_object)
 
@@ -182,28 +181,28 @@ class Yolo(CviasDetectionModel):
     def calibrate_function(
         self,
         confidence_per_video: float,
-        true_threshold=0.60,  # 0.60,
-        false_threshold=0.40,  # 0.40,
-        a=0.971,
-        k=7.024,
-        x0=0.117,
+        true_threshold: float = 0.60,  # 0.60,
+        false_threshold: float = 0.40,  # 0.40,
+        k: float = 7.024,
+        x0: float = 0.117,
     ) -> float:
         """Mapping probability.
 
         Args:
             confidence_per_video (float): Confidence per video.
-            true_threshold (float, optional): True threshold. Defaults to 0.64.
-            false_threshold (float, optional): False threshold. Defaults to 0.38.
+            true_threshold (float, optional): True threshold. Defaults to 0.64
+            false_threshold (float, optional): False threshold. Defaults to .38
+            k (float, optional): k. Defaults to 7.024
+            x0 (float, optional): x0. Defaults to 0.117
 
         Returns:
             float: Mapped probability.
         """
         if confidence_per_video >= true_threshold:
             return 1.0
-        elif confidence_per_video < false_threshold:
+        if confidence_per_video < false_threshold:
             return 0.0
-        else:
-            return 1 / (1 + np.exp(-k * (confidence_per_video - x0)))
+        return 1 / (1 + np.exp(-k * (confidence_per_video - x0)))
 
     def no_calibration(self, detected_object: DetectedObject) -> DetectedObject:
         """No calibration.

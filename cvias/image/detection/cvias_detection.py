@@ -54,7 +54,6 @@ class CviasDetectionModel(ObjectDetectionModelBase):
                 non_conformity_score=self.non_conformity_score,
             )
 
-        else:
-            return calibration_func(confidence)
+        return calibration_func(confidence)
 
         return 0.0
