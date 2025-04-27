@@ -14,10 +14,10 @@ from cog_cv_abstraction.image.detection.object._base import (
 class CviasDetectionModel(ObjectDetectionModelBase):
     """CVIAS Detection Model."""
 
-    def __init__(self) -> None:
+    def __init__(self, calibration_method: str | None = None) -> None:
         """Initialize CVIAS Detection Model."""
         super().__init__()
-        self.calibration_method = None
+        self.calibration_method = calibration_method
 
     def calibrate_model_with_conformal_prediction(
         self,
@@ -38,7 +38,11 @@ class CviasDetectionModel(ObjectDetectionModelBase):
         )
         self.calibration_method = "conformal_prediction"
 
-    def calibrate_confidence(self, confidence: float) -> float:
+    def calibrate_confidence(
+        self,
+        confidence: float,
+        calibration_func: callable[[float], float] | None = None,
+    ) -> float:
         """Calibrate confidence score."""
         if self.calibration_method == "conformal_prediction":
             from calibrate_cv.conformal_prediction import (
@@ -49,4 +53,7 @@ class CviasDetectionModel(ObjectDetectionModelBase):
                 confidence=confidence,
                 non_conformity_score=self.non_conformity_score,
             )
+
+        return calibration_func(confidence)
+
         return 0.0

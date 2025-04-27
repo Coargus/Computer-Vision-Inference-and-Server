@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import warnings
 from pprint import pprint
 from typing import TYPE_CHECKING
 
+import numpy as np
 from cog_cv_abstraction.schema.detected_object import DetectedObject
 from cogutil import download
 from cogutil.torch import get_device
@@ -17,7 +19,6 @@ warnings.filterwarnings("ignore")
 if TYPE_CHECKING:
     from pathlib import Path
 
-    import numpy as np
     from ultralytics.engine.results import Results
 
 # Get the home directory of the current user
@@ -40,9 +41,10 @@ class Yolo(CviasDetectionModel):
         model_name: str = "YOLOv9e",
         explicit_checkpoint_path: Path | None = None,
         gpu_number: int = 0,
+        calibration_method: str | None = None,
     ) -> None:
         """Initialization."""
-        super().__init__()
+        super().__init__(calibration_method=calibration_method)
         if explicit_checkpoint_path:
             self.checkpoint = explicit_checkpoint_path
             model_name = explicit_checkpoint_path.split("/")[-1]
@@ -145,9 +147,14 @@ class Yolo(CviasDetectionModel):
 
         if self.calibration_method:
             # calibrate confidence score
+            if "8" not in self.model_name:
+                logging.warning(
+                    "Temperature scaling calibration is only supported for YOLOv8 models."  # noqa: E501
+                )
+                return self.no_calibration(detected_object)
             return self.calibrate(detected_object)
 
-        return detected_object
+        return self.no_calibration(detected_object)
 
     def calibrate(self, detected_object: DetectedObject) -> DetectedObject:
         """Calibrate detection results.
@@ -161,7 +168,52 @@ class Yolo(CviasDetectionModel):
         probabilities = []
         if detected_object.is_detected:
             for confidence in detected_object.confidence_of_all_obj:
-                probabilities.append(self.calibrate_confidence(confidence))
+                probabilities.append(
+                    self.calibrate_confidence(
+                        confidence=confidence,
+                        calibration_func=self.calibrate_function,
+                    )
+                )
+            detected_object.probability_of_all_obj = probabilities
+            detected_object.probability = max(probabilities)
+        return detected_object
+
+    def calibrate_function(
+        self,
+        confidence_per_video: float,
+        true_threshold: float = 0.60,  # 0.60,
+        false_threshold: float = 0.40,  # 0.40,
+        k: float = 7.024,
+        x0: float = 0.117,
+    ) -> float:
+        """Mapping probability.
+
+        Args:
+            confidence_per_video (float): Confidence per video.
+            true_threshold (float, optional): True threshold. Defaults to 0.64
+            false_threshold (float, optional): False threshold. Defaults to .38
+            k (float, optional): k. Defaults to 7.024
+            x0 (float, optional): x0. Defaults to 0.117
+
+        Returns:
+            float: Mapped probability.
+        """
+        if confidence_per_video >= true_threshold:
+            return 1.0
+        if confidence_per_video < false_threshold:
+            return 0.0
+        return 1 / (1 + np.exp(-k * (confidence_per_video - x0)))
+
+    def no_calibration(self, detected_object: DetectedObject) -> DetectedObject:
+        """No calibration.
+
+        Args:
+            detected_object (DetectedObject): Detected object.
+        """
+        probabilities = []
+        if detected_object.is_detected:
+            for confidence in detected_object.confidence_of_all_obj:
+                probabilities.append(confidence)
             detected_object.probability_of_all_obj = probabilities
             detected_object.probability = max(probabilities)
         return detected_object
