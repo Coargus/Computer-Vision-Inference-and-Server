@@ -82,7 +82,7 @@ select = [
     "RUF",
 ]
 
-ignore = ["ANN101","ANN102","COM","EXE","PD","S307","FBT001","FBT002","ISC001","G004"]
+ignore = ["ANN101","ANN102","COM","EXE","PD","S307","FBT001","FBT002","ISC001","G004","PLR0913"]
 
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
