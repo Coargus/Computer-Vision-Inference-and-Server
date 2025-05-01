@@ -41,7 +41,7 @@ class CviasDetectionModel(ObjectDetectionModelBase):
     def calibrate_confidence(
         self,
         confidence: float,
-        calibration_func: callable[[float], float] | None = None,
+        calibration_func: callable | None = None,
     ) -> float:
         """Calibrate confidence score."""
         if self.calibration_method == "conformal_prediction":
@@ -55,5 +55,3 @@ class CviasDetectionModel(ObjectDetectionModelBase):
             )
 
         return calibration_func(confidence)
-
-        return 0.0

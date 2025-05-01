@@ -238,7 +238,7 @@ class InternVL(VisionLanguageModelBase):
             self.tokenizer, pixel_values, language, generation_config
         )
 
-    def chat_with_confidence(  # noqa: PLR0913
+    def chat_with_confidence(
         self,
         tokenizer: AutoTokenizer,
         pixel_values: torch.Tensor,
