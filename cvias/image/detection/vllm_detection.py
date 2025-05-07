@@ -60,6 +60,7 @@ class VLLMDetection(CviasDetectionModel):
         frame_img: np.ndarray | None = None,
         classes: list[np.ndarray] | None = None,
         threshold: float | None = None,
+        custom_prompt: str | None = None,
     ) -> DetectedObject:
         """Detect the scene description in the frame or sequence of frames.
 
@@ -81,9 +82,16 @@ class VLLMDetection(CviasDetectionModel):
         user_content = [
             {
                 "type": "text",
-                "text": f"Does the sequence of these images depict '{scene_description}'",  # noqa: E501
+                "text": f"Does the sequence of these images depict '{scene_description}?",  # noqa: E501
             }
         ]
+        if custom_prompt:
+            user_content.append(
+                {
+                    "type": "text",
+                    "text": custom_prompt,
+                }
+            )
         for encoded in encoded_images:
             user_content.append(
                 {
